@@ -26,8 +26,6 @@ python cifar_train.py --dataset cifar100 --longtail True  --loss_type CE --gpu 0
 
 ### Reference
 
-If you find our paper and repo useful, please cite as
-
 ```
 @inproceedings{cao2019learning,
   title={Learning Imbalanced Datasets with Label-Distribution-Aware Margin Loss},
