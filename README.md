@@ -1,12 +1,20 @@
 ## Project : Long tail classification using synthesized images
 
 If you need generated images for cifar100 data, tell me. (2.4GB)
+
+
 All the data must be like this root
-LT_project(main)_ _ _/
- -----datasets-----
+
+
+LT_project(main_folder)--
+
  
-      --------cifar-100-python (origin data)
-      
+ |---datasets
+     
+     |
+     |---cifar-100-ptyon (origin data)
+     |
+     |      
       --------cifar100-lt (long tail data from origin)
       
       --------changed_syn_cifar100
