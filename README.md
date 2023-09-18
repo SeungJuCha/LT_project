@@ -6,17 +6,15 @@ If you need generated images for cifar100 data, tell me. (2.4GB)
   All the data must be like this root
 
 
-  LT_project(main_folder)
-
- 
-     |---datasets
-            |
-            |
-            |---cifar-100-ptyon (origin data)
-            |
-            |---cifar-100-lt (LT data)
-            | 
-            |---syn_cifar100 (generated data)
+  Dataset(main_folder)
+  
+          |
+          |
+          |---cifar-100-ptyon (origin data)
+          |
+          |---cifar-100-lt (LT data)
+          | 
+          |---syn_cifar100 (generated data)
 
 If you want to generate images by your own, Data_synthesizing.py
 Set your outputpath before generating
