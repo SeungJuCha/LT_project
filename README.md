@@ -10,13 +10,18 @@ LT_project(main)_ _ _/
 
 If you want to generate images by your own, Data_synthesizing.py
 Set your outputpath before generating
-''' bash
+```bash
 python Data_syntesizing.py
+```
 
-To train with cifar_train.py
-''' bash
+Make LT datset into specific dsitribution use save_data.py
+
+
+
+To train with cifar_train.py 
+``` bash
 python cifar_train.py --dataset cifar100 --longtail True  --loss_type CE --gpu 0 --batch-size 128 --imb_factor 0.01 -d 100
-
+```
 
 
 ### Reference
