@@ -15,18 +15,23 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import models
-from tensorboardX import SummaryWriter
+from collections import Counter
 from sklearn.metrics import confusion_matrix
-from utils import *
-from imbalance_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
+from LT_project.utils.utils import *
+from LT_project.data.imbalance_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
 from losses import LDAMLoss, FocalLoss
+from LT_project.data.load_data import Cifar100Dataset, transform
+from LT_project.data.cifar100_classes import Cifar100Class
+import wandb
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch Cifar Training')
-parser.add_argument('--dataset', default='cifar10', help='dataset setting')
+parser.add_argument('--dataset', default='cifar100', help='dataset setting') #! default data- cifar100
+parser.add_argument('--distribution','-d', default = 200, type = int, help = 'distribution of dataset')
+parser.add_argument('--longtail', default=True, help='longtail setting boolean. True: lt set') #! default data- cifar100
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet32',
                     choices=model_names,
                     help='model architecture: ' +
@@ -34,7 +39,7 @@ parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet32',
                         ' (default: resnet32)')
 parser.add_argument('--loss_type', default="CE", type=str, help='loss type')
 parser.add_argument('--imb_type', default="exp", type=str, help='imbalance type')
-parser.add_argument('--imb_factor', default=0.01, type=float, help='imbalance factor')
+parser.add_argument('--imb_factor', default=0.01, type=float, help='imbalance factor') #! 0.01,0.05,0.1
 parser.add_argument('--train_rule', default='None', type=str, help='data sampling strategy for train loader')
 parser.add_argument('--rand_number', default=0, type=int, help='fix random number for data sampling')
 parser.add_argument('--exp_str', default='0', type=str, help='number to indicate which experiment it is')
@@ -66,15 +71,19 @@ parser.add_argument('--seed', default=None, type=int,
                     help='seed for initializing training. ')
 parser.add_argument('--gpu', default=None, type=int,
                     help='GPU id to use.')
-parser.add_argument('--root_log',type=str, default='log')
-parser.add_argument('--root_model', type=str, default='checkpoint')
+parser.add_argument('--root_log',type=str, default='./log') #! whre to save log .csv file
+parser.add_argument('--root_model', type=str, default='./checkpoint')
+
 best_acc1 = 0
 
 
 def main():
+    
     args = parser.parse_args()
-    args.store_name = '_'.join([args.dataset, args.arch, args.loss_type, args.train_rule, args.imb_type, str(args.imb_factor), args.exp_str])
+    args.store_name = '_'.join([args.dataset, args.arch, args.loss_type, args.train_rule, str(args.imb_factor), args.exp_str, str(args.distribution)]) #! noCLIP 폴더 따로 만들기
     prepare_folders(args)
+    
+    wandb.init(project = 'Cifar100 -lt classify',config = args)
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
@@ -94,6 +103,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
+
     global best_acc1
     args.gpu = gpu
 
@@ -151,19 +161,25 @@ def main_worker(gpu, ngpus_per_node, args):
     ])
 
     if args.dataset == 'cifar10':
-        train_dataset = IMBALANCECIFAR10(root='./data', imb_type=args.imb_type, imb_factor=args.imb_factor, rand_number=args.rand_number, train=True, download=True, transform=transform_train)
-        val_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_val)
+        train_dataset = IMBALANCECIFAR10(root='./datasets', imb_type=args.imb_type, imb_factor=args.imb_factor, rand_number=args.rand_number, train=True, download=True, transform=transform_train)
+        val_dataset = datasets.CIFAR10(root='./datasets', train=False, download=True, transform=transform_val)
     elif args.dataset == 'cifar100':
-        train_dataset = IMBALANCECIFAR100(root='./data', imb_type=args.imb_type, imb_factor=args.imb_factor, rand_number=args.rand_number, train=True, download=True, transform=transform_train)
-        val_dataset = datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_val)
+        if args.longtail == False:
+            train_dataset = Cifar100Dataset(root_dir='./datasets/cifar-100-python/train_image', transform=transform('train'))
+            val_dataset = Cifar100Dataset(root_dir='./datasets/cifar-100-python/test_image', transform=transform('val'))
+            print('Successfully load original cifar100 dataset')
+        else:
+            train_dataset = Cifar100Dataset(root_dir=f'../datasets/cifar100-lt/train_{args.imb_factor}_{args.distribution}', transform=transform('train')) #! noCLIP 로드
+            val_dataset = Cifar100Dataset(root_dir='../datasets/cifar-100-python/test_image', transform=transform('val'))
+            print(f'Successfully load longtail cifar100-{args.imb_factor}_{args.distribution} dataset')
     else:
-        warnings.warn('Dataset is not listed')
+        warnings.warn('Dataset is not listed uploaded')
         return
-    cls_num_list = train_dataset.get_cls_num_list()
+    cls_num_list = get_class_num_list(train_dataset)
     print('cls num list:')
     print(cls_num_list)
-    args.cls_num_list = cls_num_list
     
+    args.cls_num_list = cls_num_list    
     train_sampler = None
         
     train_loader = torch.utils.data.DataLoader(
@@ -175,11 +191,11 @@ def main_worker(gpu, ngpus_per_node, args):
         num_workers=args.workers, pin_memory=True)
 
     # init log for training
-    log_training = open(os.path.join(args.root_log, args.store_name, 'log_train.csv'), 'w')
-    log_testing = open(os.path.join(args.root_log, args.store_name, 'log_test.csv'), 'w')
+    log_training = open(os.path.join(args.root_log, args.store_name, f'log_train_{args.imb_factor}.csv'), 'w')
+    log_testing = open(os.path.join(args.root_log, args.store_name, f'log_test.csv_{args.imb_factor}'), 'w')
     with open(os.path.join(args.root_log, args.store_name, 'args.txt'), 'w') as f:
         f.write(str(args))
-    tf_writer = SummaryWriter(log_dir=os.path.join(args.root_log, args.store_name))
+
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args)
 
@@ -218,16 +234,14 @@ def main_worker(gpu, ngpus_per_node, args):
             return
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args, log_training, tf_writer)
+        train(train_loader, model, criterion, optimizer, epoch, args, log_training) # 인자로 tf_writer들어있었음
         
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, epoch, args, log_testing, tf_writer)
+        acc1 = validate(val_loader, model, criterion, epoch, args, log_testing)
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
-
-        tf_writer.add_scalar('acc/test_top1_best', best_acc1, epoch)
         output_best = 'Best Prec@1: %.3f\n' % (best_acc1)
         print(output_best)
         log_testing.write(output_best + '\n')
@@ -242,7 +256,7 @@ def main_worker(gpu, ngpus_per_node, args):
         }, is_best)
 
 
-def train(train_loader, model, criterion, optimizer, epoch, args, log, tf_writer):
+def train(train_loader, model, criterion, optimizer, epoch, args, log): #인자로 tf_writer들어있었음
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -254,6 +268,10 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log, tf_writer
 
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
+        #ToDo ; Wandb삽입
+        wandb.log({'epoch': epoch, 'train_loss': losses.val,
+                   'train_acc1': top1.val, 'train_acc5': top5.val
+                   })
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -288,15 +306,10 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log, tf_writer
                       'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                       'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top5=top5, lr=optimizer.param_groups[-1]['lr'] * 0.1))  # TODO
+                data_time=data_time, loss=losses, top1=top1, top5=top5, lr=optimizer.param_groups[-1]['lr'] * 0.1)) 
             print(output)
             log.write(output + '\n')
             log.flush()
-
-    tf_writer.add_scalar('loss/train', losses.avg, epoch)
-    tf_writer.add_scalar('acc/train_top1', top1.avg, epoch)
-    tf_writer.add_scalar('acc/train_top5', top5.avg, epoch)
-    tf_writer.add_scalar('lr', optimizer.param_groups[-1]['lr'], epoch)
 
 def validate(val_loader, model, criterion, epoch, args, log=None, tf_writer=None, flag='val'):
     batch_time = AverageMeter('Time', ':6.3f')
@@ -311,6 +324,7 @@ def validate(val_loader, model, criterion, epoch, args, log=None, tf_writer=None
     with torch.no_grad():
         end = time.time()
         for i, (input, target) in enumerate(val_loader):
+            
             if args.gpu is not None:
                 input = input.cuda(args.gpu, non_blocking=True)
             target = target.cuda(args.gpu, non_blocking=True)
@@ -342,6 +356,8 @@ def validate(val_loader, model, criterion, epoch, args, log=None, tf_writer=None
                     i, len(val_loader), batch_time=batch_time, loss=losses,
                     top1=top1, top5=top5))
                 print(output)
+        #ToDo: wandb avg        
+        wandb.log({'val_loss': losses.avg, 'val_acc1': top1.avg, 'val_acc5': top5.avg})
         cf = confusion_matrix(all_targets, all_preds).astype(float)
         cls_cnt = cf.sum(axis=1)
         cls_hit = np.diag(cf)
@@ -355,12 +371,6 @@ def validate(val_loader, model, criterion, epoch, args, log=None, tf_writer=None
             log.write(output + '\n')
             log.write(out_cls_acc + '\n')
             log.flush()
-
-        tf_writer.add_scalar('loss/test_'+ flag, losses.avg, epoch)
-        tf_writer.add_scalar('acc/test_' + flag + '_top1', top1.avg, epoch)
-        tf_writer.add_scalar('acc/test_' + flag + '_top5', top5.avg, epoch)
-        tf_writer.add_scalars('acc/test_' + flag + '_cls_acc', {str(i):x for i, x in enumerate(cls_acc)}, epoch)
-
     return top1.avg
 
 def adjust_learning_rate(optimizer, epoch, args):
@@ -376,6 +386,36 @@ def adjust_learning_rate(optimizer, epoch, args):
         lr = args.lr
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+        
+def get_class_num_list(train_dataset):
+    
+    class_counter = Counter()
 
+    for _, target in train_dataset:
+        class_counter[target] += 1
+
+    class_counts = dict(class_counter)
+
+    cls_num_list = [class_counts.get(cls_id, 0) for cls_id in range(len(Cifar100Class))]
+    return cls_num_list
+
+
+
+#! code excute command
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True --train_rule DRW --loss_type LDAM --gpu 1 --batch-size 128 --imb_factor 0.01 -d 200
+
+#! check the acc between 100 and 200 in CE and LDAM loss
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True  --loss_type CE --gpu 0 --batch-size 128 --imb_factor 0.01 -d 100  #! foldername cifar100_resnet32_CE_None_0.01_0_100
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True  --loss_type CE --gpu 0 --batch-size 128 --imb_factor 0.01 -d 200  #! folder cifar100_resnet32_CE_None_0.01_0_200
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True  --train_rule DRW --loss_type LDAM --gpu 0 --batch-size 128 --imb_factor 0.01 -d 100#! foldername cifar100_resnet32_LDAM_DRW_0.01_0_100
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True  --train_rule DRW --loss_type LDAM --gpu 0 --batch-size 128 --imb_factor 0.01 -d 200#! folder cifar100_resnet32_LDAM_DRW_0.01_0_200
+#! Check by distribution
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True  --train_rule DRW --loss_type LDAM --gpu 0 --batch-size 128 --imb_factor 0.01 -d 300#! folder cifar100_resnet32_LDAM_DRW_0.01_0_300
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True  --loss_type CE --gpu 0 --batch-size 128 --imb_factor 0.01 -d 300 #! folder cifar100_resnet32_CE_None_0.01_0_300
+#! check if we need CLIP filter
+#python LT_project/cifar_train.py --dataset cifar100 --longtail True  --train_rule DRW --loss_type LDAM --gpu 0 --batch-size 128 --imb_factor 0.01 -d 200_noCLIP
 if __name__ == '__main__':
+
     main()
+
+    

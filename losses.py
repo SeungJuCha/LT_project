@@ -24,8 +24,8 @@ class LDAMLoss(nn.Module):
     
     def __init__(self, cls_num_list, max_m=0.5, weight=None, s=30):
         super(LDAMLoss, self).__init__()
-        m_list = 1.0 / np.sqrt(np.sqrt(cls_num_list))
-        m_list = m_list * (max_m / np.max(m_list))
+        m_list = 1.0 / np.sqrt(np.sqrt(cls_num_list)) # get margin list from each class distribution
+        m_list = m_list * (max_m / np.max(m_list))  # scale the margin list to max_m
         m_list = torch.cuda.FloatTensor(m_list)
         self.m_list = m_list
         assert s > 0
@@ -33,7 +33,7 @@ class LDAMLoss(nn.Module):
         self.weight = weight
 
     def forward(self, x, target):
-        index = torch.zeros_like(x, dtype=torch.uint8)
+        index = torch.zeros_like(x, dtype=torch.uint8) 
         index.scatter_(1, target.data.view(-1, 1), 1)
         
         index_float = index.type(torch.cuda.FloatTensor)
