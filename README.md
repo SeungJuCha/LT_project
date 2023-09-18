@@ -3,13 +3,13 @@
 If you need generated images for cifar100 data, tell me. (2.4GB)
 
 
-All the data must be like this root
+| All the data must be like this root
 
 
-LT_project(main_folder)--
+| LT_project(main_folder)--
 
  
- |---datasets
+     |---datasets
      
      |
      |---cifar-100-ptyon (origin data)
