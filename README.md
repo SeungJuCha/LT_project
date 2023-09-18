@@ -10,13 +10,13 @@ If you need generated images for cifar100 data, tell me. (2.4GB)
 
  
      |---datasets
-     |
-     |
-     |---cifar-100-ptyon (origin data)
-     |
-     |---cifar-100-lt (LT data)
-     | 
-     |---syn_cifar100 (generated data)
+            |
+            |
+            |---cifar-100-ptyon (origin data)
+            |
+            |---cifar-100-lt (LT data)
+            | 
+            |---syn_cifar100 (generated data)
 
 If you want to generate images by your own, Data_synthesizing.py
 Set your outputpath before generating
