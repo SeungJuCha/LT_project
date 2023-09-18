@@ -1,37 +1,22 @@
-## Learning Imbalanced Datasets with Label-Distribution-Aware Margin Loss 
-Kaidi Cao, Colin Wei, Adrien Gaidon, Nikos Arechiga, Tengyu Ma
-_________________
+## Project : Long tail classification using synthesized images
 
-This is the official implementation of LDAM-DRW in the paper [Learning Imbalanced Datasets with Label-Distribution-Aware Margin Loss](https://arxiv.org/pdf/1906.07413.pdf) in PyTorch.
+If you need generated images for cifar100 data, tell me. (2.4GB)
+All the data must be like this root
+LT_project(main)_ _ _/
+ -----datasets-----
+      --------cifar-100-python (origin data)
+      --------cifar100-lt (long tail data from origin)
+      --------changed_syn_cifar100
 
-### Dependency
+If you want to generate images by your own, Data_synthesizing.py
+Set your outputpath before generating
+''' bash
+python Data_syntesizing.py
 
-The code is built with following libraries:
+To train with cifar_train.py
+''' bash
+python cifar_train.py --dataset cifar100 --longtail True  --loss_type CE --gpu 0 --batch-size 128 --imb_factor 0.01 -d 100
 
-- [PyTorch](https://pytorch.org/) 1.2
-- [TensorboardX](https://github.com/lanpa/tensorboardX)
-- [scikit-learn](https://scikit-learn.org/stable/)
-
-### Dataset
-
-- Imbalanced [CIFAR](https://www.cs.toronto.edu/~kriz/cifar.html). The original data will be downloaded and converted by `imbalancec_cifar.py`.
-- The paper also reports results on Tiny ImageNet and iNaturalist 2018. We will update the code for those datasets later.
-
-### Training 
-
-We provide several training examples with this repo:
-
-- To train the ERM baseline on long-tailed imbalance with ratio of 100
-
-```bash
-python cifar_train.py --gpu 0 --imb_type exp --imb_factor 0.01 --loss_type CE --train_rule None
-```
-
-- To train the LDAM Loss along with DRW training on long-tailed imbalance with ratio of 100
-
-```bash
-python cifar_train.py --gpu 0 --imb_type exp --imb_factor 0.01 --loss_type LDAM --train_rule DRW
-```
 
 
 ### Reference
