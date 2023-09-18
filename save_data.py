@@ -1,4 +1,4 @@
-from LT_project.data.imbalance_cifar import IMBALANCECIFAR100
+from data.imbalance_cifar import IMBALANCECIFAR100
 
 import os
 import torch
@@ -9,7 +9,7 @@ from Data_synthesizing import syn_to_lt_folder,init_dataset
 # Instantiate the custom dataset
 train_dataset = IMBALANCECIFAR100(root='./datasets', imb_type='exp', imb_factor=0.01, rand_number=0, train=True, transform=None, download=True)
 syn_image_path = './datasets/changed_syn_cifar100'
-text_path = './LT_project/json/cifar100_description_1.json' 
+text_path = './json/cifar100_description_1.json' 
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 

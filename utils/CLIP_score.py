@@ -8,7 +8,7 @@ import re
 from torch.utils.data import DataLoader
 import json
 import pandas as pd
-from LT_project.data.load_data import Cifar100Dataset
+from data.load_data import Cifar100Dataset
 
  #! Description: This file contains the code for filtering the data based on the CLIP score and FID score
 

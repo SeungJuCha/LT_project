@@ -7,7 +7,7 @@ from transformers import CLIPProcessor, CLIPModel,AutoProcessor
 import seaborn as sns
 import matplotlib.pyplot as plt
 from cifar_train import get_class_num_list,transform
-from LT_project.data.load_data import Cifar100Dataset
+from data.load_data import Cifar100Dataset
 import numpy as np
 
  #ToDo: feature ->1,512  작업중 ..............

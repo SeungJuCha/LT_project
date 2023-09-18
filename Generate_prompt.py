@@ -2,7 +2,7 @@ import os
 import openai
 import json
 import pdb
-from LT_project.data.cifar100_classes import Cifar100Class
+from data.cifar100_classes import Cifar100Class
 from tqdm import tqdm
 
 openai.api_key =  #!openai api key input

@@ -5,12 +5,12 @@ from diffusers import DiffusionPipeline
 from diffusers import DPMSolverMultistepScheduler # check the scheduler you want to use
 import numpy as np
 from PIL import Image
-from LT_project.data.cifar100_classes import Cifar100Class, Coarse_label
+from data.cifar100_classes import Cifar100Class, Coarse_label
 from torchvision.transforms import ToTensor
-from LT_project.utils.CLIP_score import check_CLIP_score_per_image,transform_clip
+from utils.CLIP_score import check_CLIP_score_per_image,transform_clip
 from collections import Counter
 from  torchmetrics.multimodal.clip_score import CLIPScore
-from LT_project.data.load_data import Cifar100Dataset,transform
+from data.load_data import Cifar100Dataset,transform
 from collections import defaultdict
 import pandas as pd
 import torch.nn as nn
@@ -91,7 +91,7 @@ def generate_image(output_path,prompt_file_path, model_id,pipeline,scheduler,bat
     
     file = open_file(prompt_file_path)
     pipe = load_model(model_id=model_id,pipeline=pipeline,scheduler=scheduler,device=device)
-    for key in list(file.keys())[:]: # 생성하는데 굉장히 오래 걸리기에 끊어서 추천 
+    for key in list(file.keys())[:1]: # 생성하는데 굉장히 오래 걸리기에 끊어서 추천 
         
         prompt_list = file[key]
         config_dict = get_inputs(promptlist=prompt_list,batch_size=batch_size,num_inference_steps=num_inference_steps,device = device)
@@ -126,7 +126,7 @@ def generate_image(output_path,prompt_file_path, model_id,pipeline,scheduler,bat
 
 #! this part is checking CLIP socre of each image & prompt -> threshold -> transform into 32,32 and save it in train_0.01 folder(label subfolder)
 def syn_to_lt_folder(syn_image_path,lt_img_path,text_path,distribution,device,CLIP = True):
-    csv_path = './LT_project/csvfile/clip_score_processed.csv'
+    csv_path = './csvfile/clip_score_processed.csv'
     data = pd.read_csv(csv_path)
     class_mean_dict = {}
     for _, row in data.iterrows():
@@ -205,9 +205,9 @@ def init_dataset(lt_img_path, check_name = 'image_plus'):
 
 
 # device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
-# #! excute code
-# out_dir = '../datasets/changed_syn_cifar100'
+# # #! excute code
+# out_dir = '../datasets/syn_cifar100'
 # os.makedirs(out_dir, exist_ok=True)
-# cifar100_prompts_path = './LT_project/cifar100_description_1.json' #! path for your own prompt file (json)
-# # #! Main excute code
-# generate_image(out_dir,cifar100_prompts_path,None,None,None,15,30,False,device) 
+# cifar100_prompts_path = './json/cifar100_description_1.json' #! path for your own prompt file (json)
+# # # #! Main excute code
+# generate_image(out_dir,cifar100_prompts_path,None,None,None,1,30,False,device) 

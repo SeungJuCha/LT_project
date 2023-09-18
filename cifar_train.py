@@ -17,11 +17,11 @@ import torchvision.datasets as datasets
 import models
 from collections import Counter
 from sklearn.metrics import confusion_matrix
-from LT_project.utils.utils import *
-from LT_project.data.imbalance_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
+from utils.utils import *
+from data.imbalance_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
 from losses import LDAMLoss, FocalLoss
-from LT_project.data.load_data import Cifar100Dataset, transform
-from LT_project.data.cifar100_classes import Cifar100Class
+from data.load_data import Cifar100Dataset, transform
+from data.cifar100_classes import Cifar100Class
 import wandb
 
 model_names = sorted(name for name in models.__dict__

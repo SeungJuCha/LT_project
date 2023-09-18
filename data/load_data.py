@@ -2,7 +2,7 @@ import os
 from torch.utils.data import Dataset,DataLoader
 from torchvision import transforms,models
 from PIL import Image
-from LT_project.data.cifar100_classes import Cifar100Class
+from data.cifar100_classes import Cifar100Class
 import torch
 
 
